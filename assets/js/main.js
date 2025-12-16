@@ -443,17 +443,7 @@
     // Dom Ready
     $(function () {
         ajaxContactForm();
-        scrollLink();
-        textRotate();
         infiniteSlide();
-        updateClock();
-        counter();
-        settingColor();
         hoverImgCursor();
-        switchMode();
-        activeClass();
-        wrapActive();
-        textTyping();
-        handleOpenNav();
     });
 })(jQuery);

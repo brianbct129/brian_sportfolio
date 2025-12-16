@@ -254,14 +254,186 @@
                     height="40" src="assets/images/logo/logo.svg" alt="Image">
             </a>
             <div class="left">
-                <div class="time-local text-body-3">
-                    <p class="date"></p>
-                    <p class="clock"></p>
+                <div id="vue-time" class="time-local text-body-3">
+                    <p class="date">{{ dateString }}</p>
+                    <p class="clock">{{ timeString }}</p>
                 </div>
 
             </div>
         </div>
         <!-- /Time Local -->
+        <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+        <script>
+            const { createApp } = Vue;
+            createApp({
+                data() {
+                    return {
+                        timeString: '',
+                        dateString: ''
+                    };
+                },
+                methods: {
+                    update() {
+                        const now = new Date();
+                        this.timeString = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                        this.dateString = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                    }
+                },
+                mounted() {
+                    this.update();
+                    this._timer = setInterval(this.update, 1000);
+                },
+                unmounted() {
+                    clearInterval(this._timer);
+                }
+            }).mount('#vue-time');
+        </script>
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const { createApp: createApp2 } = Vue;
+                createApp2({
+                    data() {
+                        return {
+                            isDark: false
+                        };
+                    },
+                    mounted() {
+                        const defaultMode = document.body.dataset.defaultMode;
+                        const saved = localStorage.getItem('darkMode');
+                        this.isDark = saved ? saved === 'enabled' : defaultMode === 'dark';
+                        document.body.classList.toggle('dark-mode', this.isDark);
+                        this.applyLogo(this.isDark);
+                        document.querySelectorAll('.toggle-switch-mode').forEach(el => {
+                            el.classList.toggle('active', this.isDark);
+                            el.addEventListener('click', this.toggleDark);
+                        });
+                        document.querySelectorAll('.choose-item').forEach((btn, index) => {
+                            btn.addEventListener('click', () => this.chooseColor(btn, index));
+                        });
+                        document.querySelectorAll('.action-open-mobile, .overlay-pop').forEach(el => {
+                            el.addEventListener('click', this.toggleMobileMenu);
+                        });
+                        const circular = document.getElementById('circularText');
+                        if (circular) {
+                            const text = 'award winning agency - since 2022 -';
+                            const chars = text.split('');
+                            const degree = 360 / chars.length;
+                            circular.innerHTML = '';
+                            chars.forEach((char, i) => {
+                                const span = document.createElement('span');
+                                span.textContent = char;
+                                span.style.transform = `rotate(${i * degree}deg)`;
+                                circular.appendChild(span);
+                            });
+                        }
+                        this.initScrollLinks();
+                        this.initCounters();
+                        this.initIntroActive();
+                    },
+                    methods: {
+                        toggleDark() {
+                            this.isDark = !this.isDark;
+                            document.body.classList.toggle('dark-mode', this.isDark);
+                            localStorage.setItem('darkMode', this.isDark ? 'enabled' : 'disabled');
+                            this.applyLogo(this.isDark);
+                            document.querySelectorAll('.toggle-switch-mode').forEach(el => el.classList.toggle('active', this.isDark));
+                        },
+                        applyLogo(isDark) {
+                            document.querySelectorAll('.image-switch').forEach(img => {
+                                const lightOriginal = img.dataset.light || img.dataset.lightOriginal || img.getAttribute('src');
+                                if (!img.dataset.lightOriginal) img.dataset.lightOriginal = lightOriginal;
+                                const darkSrc = img.dataset.dark;
+                                img.setAttribute('src', isDark && darkSrc ? darkSrc : img.dataset.lightOriginal);
+                            });
+                            const logoMobile = document.getElementById('logo_mode');
+                            if (logoMobile) {
+                                const lightOriginal = logoMobile.dataset.light || logoMobile.dataset.lightOriginal || logoMobile.getAttribute('src');
+                                if (!logoMobile.dataset.lightOriginal) logoMobile.dataset.lightOriginal = lightOriginal;
+                                const darkSrc = logoMobile.dataset.dark;
+                                logoMobile.setAttribute('src', this.isDark && darkSrc ? darkSrc : logoMobile.dataset.lightOriginal);
+                            }
+                        },
+                        chooseColor(btn, index) {
+                            const isLight = btn.classList.contains('theme-light');
+                            const num = (index % 3) + 1;
+                            const bodyClass = `${isLight ? 'body-v' : 'dark-v'}${num}`;
+                            document.querySelectorAll(`.choose-item.${isLight ? 'theme-light' : 'theme-dark'}`).forEach(b => b.classList.remove('active'));
+                            if (btn.classList.contains('active')) {
+                                btn.classList.remove('active');
+                                document.body.classList.remove(bodyClass);
+                                return;
+                            }
+                            btn.classList.add('active');
+                            Array.from(document.body.classList).forEach(cls => {
+                                if (cls.startsWith('body-v') || cls.startsWith('dark-v')) document.body.classList.remove(cls);
+                            });
+                            document.body.classList.add(bodyClass);
+                        },
+                        toggleMobileMenu() {
+                            const nav = document.querySelector('.nav-mobile-list');
+                            const overlay = document.querySelector('.overlay-pop');
+                            const btn = document.querySelector('.btn-mobile-menu');
+                            if (nav) nav.classList.toggle('open');
+                            if (overlay) overlay.classList.toggle('open');
+                            document.body.classList.toggle('overflow-hidden');
+                            if (btn) btn.classList.toggle('close');
+                        },
+                        initScrollLinks() {
+                            const links = Array.from(document.querySelectorAll('a.scroll-link'));
+                            const map = new Map(links.map(l => [l, document.querySelector(l.getAttribute('href'))]));
+                            const observer = new IntersectionObserver(entries => {
+                                const visible = new Set(entries.filter(e => e.isIntersecting).map(e => e.target));
+                                links.forEach(l => {
+                                    const target = map.get(l);
+                                    l.classList.toggle('active', visible.has(target));
+                                });
+                            }, { rootMargin: '-20px 0px -70% 0px', threshold: 0 });
+                            map.forEach(section => { if (section) observer.observe(section); });
+                        },
+                        initCounters() {
+                            const counters = Array.from(document.querySelectorAll('.counter'));
+                            const io = new IntersectionObserver(entries => {
+                                entries.forEach(e => {
+                                    if (e.isIntersecting) {
+                                        const el = e.target;
+                                        el.querySelectorAll('.number').forEach(numEl => {
+                                            const to = parseInt(numEl.dataset.to, 10) || 0;
+                                            const speed = parseInt(numEl.dataset.speed, 10) || 1000;
+                                            const start = performance.now();
+                                            const init = parseInt(numEl.textContent, 10) || 0;
+                                            const animate = (now) => {
+                                                const p = Math.min(1, (now - start) / speed);
+                                                numEl.textContent = Math.floor(init + p * (to - init));
+                                                if (p < 1) requestAnimationFrame(animate);
+                                            };
+                                            requestAnimationFrame(animate);
+                                        });
+                                        io.unobserve(el);
+                                    }
+                                });
+                            });
+                            counters.forEach(c => io.observe(c));
+                        },
+                        initIntroActive() {
+                            const elements = document.querySelectorAll('.intro-title span');
+                            const onScroll = () => {
+                                elements.forEach(el => {
+                                    if (el.classList.contains('active')) return;
+                                    const rect = el.getBoundingClientRect();
+                                    const inView = rect.top < window.innerHeight * 0.8 && rect.bottom > 0;
+                                    if (inView) {
+                                        setTimeout(() => el.classList.add('active'), 300);
+                                    }
+                                });
+                            };
+                            window.addEventListener('scroll', onScroll);
+                            window.addEventListener('load', onScroll);
+                            onScroll();
+                        }
+                    }
+                }).mount('#wrapper');
+            });
+        </script>
 
         <!-- User Sidebar -->
         <div class="sidebar-user">
@@ -365,8 +537,8 @@
                                 </div>
                                 <h1 class="intro-title letter-space--2 split-text effect-blur-fade">
                                     I’m building
-                                    <span class="">websites</span><br>
-                                    <span class="type-2">& brands</span>
+                                    <span class="active">websites</span><br>
+                                    <span class="type-2 active">& brands</span>
                                     that people remember
                                 </h1>
                                 <div class="intro-item">
